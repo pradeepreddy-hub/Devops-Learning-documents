@@ -1,0 +1,58 @@
+Which are all the plugins u have integrated with Jenkins ( which are the plugins uhave installed in Jenkins)
+1. parameterized plugin: It is used to pass parameters to Jenkins jobs. I configure parameterized plugin for deployment job. Deployment job asks 2 parameters one is server name and another one is artifact name. These values will be passed to deployment script inside Jenkins job.
+2. publish over CIFS: used to copy files from Linux to windows.
+3. git plugin: Allows Jenkins to pull code from Git repositories (GitHub, GitLab, Bitbucket, etc.).
+4. Pipeline Plugin (Declarative + Scripted Pipeline): Enables Jenkinsfile-based CI/CD pipelines using code (Jenkins as code).
+5. Blue Ocean Plugin: Provides a modern UI for pipelines with better visualization of stages.
+6. SonarQube: The SonarQube Scanner for Jenkins Plugin integrates Jenkins with SonarQube so Jenkins can perform code quality analysis as part of the CI/CD pipeline.
+7. Artifactory plugin: The JFrog Artifactory Plugin integrates Jenkins with JFrog Artifactory, allowing Jenkins to upload, download, store, track, and promote build artifacts.
+8. JUnit Plugin (Built-in): Used to publish test reports when Selenium tests run with JUnit/TestNG.
+9. upstream and downstream
+
+How do you take Jenkins backup
+we need to take backup of /var/lib/jenkins. we take jenkins backup and store it in a separate s3 bucket in aws. we have written a python / shell script to take backup automatically and scheduled jenkins job using crontab.
+
+how do you copy jobs from one jenkins server to another jenkins erver.
+copy the jobs under /var/lib/jenkins to another jenkins in same path.
+
+can we make slave actins as its own master.
+No
+
+how will jenkins distribute load to slave machine.
+sol: Based on
+1. capacity is more
+2. number of jobs passed.
+
+Jenkinsfile (Jenkins pipeline): Jenkinsfile is where we put all our job configuration to achieve multiple instance execution in a single pipeline job. Jenkinsfile is written using groovy script.
+
+There are two types of jenkins based groovy scripting.
+1. declarative scripting
+2. scripted scripting
+
+
+agents: agent block is used to define which jobs to run in which server. we can define 4 types of agents
+1. any
+2. none
+3. label
+4. docker
+
+any: agent any is always defined at the pipeline level. it is used to run jobs on any available server based on load.
+syntax: agent any
+
+none. if user define agent as none at the pipeline level then it is mandatory to define agent on each and every stage.
+		agent none
+
+label: it is used to run jobs on specific server
+	agent { label 'slave1' }
+
+docker: it is used to run jobs inside the docker container.
+syntax: agent {
+        docker { image 'image_name' }
+    }
+ex:
+agent {
+        docker { image 'node:24.11.1-alpine3.22' }
+    }
+
+How to define each stage in different slave
+sol: by defining agent none at pipeline level and agent label at stage level

@@ -1,0 +1,150 @@
+✅ Dependabot — Definition
+Dependabot is a GitHub tool that automatically checks for outdated or vulnerable dependencies and creates pull requests to update them.
+
+<dependency>
+  <groupId>org.springframework.boot</groupId>
+  <artifactId>spring-boot-starter-web</artifactId>
+  <version>2.6.0</version>
+</dependency>
+
+When a new version like 2.6.5 is released, Dependabot automatically creates a PR:
+
+"Bump spring-boot-starter-web from 2.6.0 to 2.6.5"
+
+You just review → merge → your project stays updated.
+
+=======================================================================================================================================================
+
+pipeline {
+    agent any
+    parameters { choice(name: 'ENV', choices: ['dev','staging','prod']) }
+
+    stages {
+
+        stage('Checkout') {
+            steps { git 'https://github.com/org/myapp.git' }
+        }
+
+        stage('Build') {
+            steps { sh 'mvn clean compile' }
+        }
+
+        // Unit Test → validates individual components in isolation.
+        stage('Unit Test') {
+            steps { sh 'mvn test' }
+            post { always { junit 'target/surefire-reports/*.xml' } }
+        }
+
+        stage('Sonar Analysis') {
+            steps { sh 'mvn sonar:sonar' }
+        }
+
+        stage('Security Scan (SAST)') {
+            steps { echo 'Running security scan...' }
+        }
+
+        stage('Upload Artifact') {
+            steps { sh 'mvn deploy -DskipTests' }
+        }
+
+        stage('Docker Build & Push') {
+            steps {
+                sh 'docker build .'
+                sh 'docker push <image>'
+            }
+        }
+
+        stage('Deploy to Kubernetes (Helm)') {
+            steps {
+                sh '''
+                  helm upgrade --install myapp ./helm \
+                    --namespace ${ENV} \
+                    --set image.tag=${BUILD_NUMBER}
+                '''
+            }
+        }
+    }
+
+    post {
+        failure {
+            echo "Build failed. Sending failure notification."
+        }
+    }
+}
+
+======================================================================================================================================================
+.github/workflows/ci-cd.yml
+
+name: CI-CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Build
+        run: mvn clean compile
+
+      # Unit Test → validates individual components using isolated tests.
+      - name: Unit Tests
+        run: mvn test
+
+      - name: Upload Unit Test Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-reports
+          path: target/surefire-reports/
+
+      - name: Sonar Analysis
+        run: mvn sonar:sonar
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Security Scan (SAST)
+        run: echo "Running security scan..."
+
+      # Upload artifact to GitHub Packages (inbuilt Maven registry)
+      - name: Upload Artifact
+        run: mvn deploy -DskipTests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker Build & Push
+        run: |
+          docker build -t ghcr.io/${{ github.repository }}/myapp:${{ github.run_number }} .
+          docker push ghcr.io/${{ github.repository }}/myapp:${{ github.run_number }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure kubeconfig
+        run: echo "${{ secrets.KUBECONFIG }}" > kubeconfig
+
+      - name: Deploy to Kubernetes (Helm)
+        run: |
+          helm upgrade --install myapp ./helm \
+            --namespace dev \
+            --set image.tag=${{ github.run_number }}
+
+    if: failure()
+    steps:
+      - name: Failure Notification
+        run: echo "Build or deployment failed. Sending notification."
+
+======================================================================================================================================================

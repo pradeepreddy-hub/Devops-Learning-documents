@@ -1,0 +1,15 @@
+Quality Gates: Enforces predefined code quality conditions before allowing release.
+
+Quality Profiles: Defines rule sets per language to control what is analyzed.
+
+Code Coverage: Measures how much code is exercised by unit tests (e.g., via JaCoCo).
+
+Code Duplication: Detects repeated code to improve maintainability.
+
+Code Smells: Highlights maintainability issues such as long methods or large classes.
+
+Bugs: Identifies errors that may cause runtime failures.
+
+Vulnerabilities: Detects security flaws like SQL injection or XSS.
+
+Issues: Consolidated list of bugs, vulnerabilities, and code smells with severity levels.
