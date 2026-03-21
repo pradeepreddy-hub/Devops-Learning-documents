@@ -1,0 +1,104 @@
+Ansible playbook to install & configure Prometheus and Grafana
+
+---
+- hosts: monitoring_servers
+  become: yes
+
+  tasks:
+    - name: Install required packages
+      apt:
+        name:
+          - prometheus
+          - grafana
+        state: present
+        update_cache: yes
+
+    - name: Start Prometheus
+      service:
+        name: prometheus
+        state: started
+        enabled: yes
+
+    - name: Start Grafana
+      service:
+        name: grafana-server
+        state: started
+        enabled: yes
+----------------------------------------------------
+Ansible playbook to restart Jenkins and ensure it is running
+
+---
+- name: Restart and ensure Jenkins is running
+  hosts: jenkins_server
+  become: yes
+
+  tasks:
+    - name: Restart Jenkins service
+      service:
+        name: jenkins
+        state: restarted
+        enabled: yes
+
+    - name: Ensure Jenkins is running
+      service:
+        name: jenkins
+        state: started
+
+----------------------------------------------------------------------
+
+Ansible role to install and configure Tomcat
+
+roles/
+└── tomcat/
+    ├── tasks/
+    │   └── main.yml
+    ├── handlers/
+    │   └── main.yml
+    ├── vars/
+    │   └── main.yml
+
+roles/tomcat/vars/main.yml
+
+tomcat_package: tomcat9
+tomcat_service: tomcat9
+
+
+roles/tomcat/tasks/main.yml
+
+---
+- name: Install Tomcat
+  apt:
+    name: "{{ tomcat_package }}"
+    state: present
+    update_cache: yes
+
+- name: Start and enable Tomcat
+  service:
+    name: "{{ tomcat_service }}"
+    state: started
+    enabled: yes
+
+- name: Copy server.xml
+  template:
+    src: server.xml.j2
+    dest: /etc/tomcat9/server.xml
+  notify: Restart Tomcat
+
+
+roles/tomcat/handlers/main.yml
+
+---
+- name: Restart Tomcat
+  service:
+    name: "{{ tomcat_service }}"
+    state: restarted
+
+
+Playbook to use the role
+
+---
+- hosts: tomcat_servers
+  become: yes
+  roles:
+    - tomcat
+
