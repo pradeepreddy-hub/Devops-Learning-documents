@@ -1,0 +1,26 @@
+#!/usr/bin/env python3
+#!/usr/bin/env python3
+
+import argparse
+
+parser = argparse.ArgumentParser(description='Python Based Command to read a content of the file')
+parser.add_argument('File', help='Name or Path of the file to read the contents')
+parser.add_argument('--lines', type=int, help='Number of lines to read')
+
+args=parser.parse_args()
+
+#print(args.File)
+
+try:
+    with open(args.File, "r") as fh:
+        content=fh.readlines()
+        limit=args.lines
+
+        if limit:
+            content=content[0:limit]
+        for line in content:
+            print(line.strip())
+
+        #print(fh.readlines())
+except FileNotFoundError:
+    print(f"The file {args.File} does not exists")
